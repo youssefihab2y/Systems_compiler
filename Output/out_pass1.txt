@@ -27,25 +27,25 @@
 0031 0 RLOOP   TD      INPUT          .TEST INPUT DEVICE
 0034 0         JEQ     RLOOP          .LOOP UNTIL READY
 0037 0         RD      INPUT          .READ CHARACTER INTO REGISTER A
-003A 0         COMP    A,S            .TEST FOR END OF RECORD (X'00')
-003D 0         JEQ     EXIT           .EXIT LOOP IF EOR
-0040 0         STCH    BUFFER,X       .STORE CHARACTER IN BUFFER
-0043 0         TIXR    T              .LOOP UNLESS MAX LENGTH
-0045 0         JLT     RLOOP          .HAS BEEN REACHED
-0048 0 EXIT    STX     LENGTH         .SAVE RECORD LENGTH
-004B 0         RSUB                   .RETURN TO CALLER
+003A 0         COMPR    A,S            .TEST FOR END OF RECORD (X'00')
+003C 0         JEQ     EXIT           .EXIT LOOP IF EOR
+003F 0         STCH    BUFFER,X       .STORE CHARACTER IN BUFFER
+0042 0         TIXR    T              .LOOP UNLESS MAX LENGTH
+0044 0         JLT     RLOOP          .HAS BEEN REACHED
+0047 0 EXIT    STX     LENGTH         .SAVE RECORD LENGTH
+004A 0         RSUB                   .RETURN TO CALLER
 0006 1         USE     CDATA
 0006 1 INPUT   BYTE    X'F1'          .CODE FOR INPUT DEVICE
-004E 0         USE
-004E 0 WRREC   CLEAR   X              .CLEAR LOOP COUNTER
-0050 0         LDT     LENGTH
-0053 0 WLOOP   TD      =X'05'         .TEST OUTPUT DEVICE
-0056 0         JEQ     WLOOP          .LOOP UNTIL READY
-0059 0         LDCH    BUFFER,X       .GET CHARACTER FROM BUFFER
-005C 0         WD      =X'05'         .WRITE CHARACTER
-005F 0         TIXR    T              .LOOP UNTIL ALL CHARACTERS
-0061 0         JLT     WLOOP          .HAVE BEEN WRITTEN
-0064 0         RSUB                   .RETURN TO CALLER
+004D 0         USE
+004D 0 WRREC   CLEAR   X              .CLEAR LOOP COUNTER
+004F 0         LDT     LENGTH
+0052 0 WLOOP   TD      =X'05'         .TEST OUTPUT DEVICE
+0055 0         JEQ     WLOOP          .LOOP UNTIL READY
+0058 0         LDCH    BUFFER,X       .GET CHARACTER FROM BUFFER
+005B 0         WD      =X'05'         .WRITE CHARACTER
+005E 0         TIXR    T              .LOOP UNTIL ALL CHARACTERS
+0060 0         JLT     WLOOP          .HAVE BEEN WRITTEN
+0063 0         RSUB                   .RETURN TO CALLER
 0007 1         USE     CDATA
 0007 1         LTORG
 000A 1         END     FIRST

@@ -34,22 +34,24 @@ def calculate_instruction_size(instruction, operand=None):
         elif instruction == "RESW":
             return 3 * (int(operand) if operand else 0)
         elif instruction == "BYTE":
-            if operand.startswith("X'") and operand.endswith("'"):
+            if operand and operand.startswith("X'") and operand.endswith("'"):
                 return (len(operand) - 3) // 2
-            elif operand.startswith("C'") and operand.endswith("'"):
+            elif operand and operand.startswith("C'") and operand.endswith("'"):
                 return len(operand) - 3
             return 1
         elif instruction == "WORD":
             return 3
-        elif instruction in ["CLEAR", "TIXR"]:  # Format 2
+        elif instruction in ["CLEAR", "TIXR", "COMPR"]:  # Format 2
             return 2
         elif instruction in ["RSUB"]:  # Format 3 no operand
             return 3
-        else:
+        # Handle special cases for directives that don't take space
+        elif instruction in ["START", "END", "USE", "EQU"]:
+            return 0
+        else:  # Default Format 3
             return 3
     except ValueError as e:
         raise ValueError(f"Error calculating size for {instruction}: {e}")
-
 def pass1(input_file, intermediate_file, symb_table_file, lc_file):
     """Perform Pass 1 to calculate LCs and generate the symbol table."""
     
@@ -189,3 +191,4 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
         sorted_symbols = sorted(symbol_table.items(), key=lambda x: x[1][0])
         for symbol, (value, sym_type) in sorted_symbols:
             symb.write(f"{symbol}\t{sym_type}\t{value:04X}\n")
+            
