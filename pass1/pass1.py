@@ -1,6 +1,17 @@
 import re
 
-# Define valid block names with their numbers
+class Literal:
+    def __init__(self, name, value, length):
+        self.name = name
+        self.value = value
+        self.length = length
+        self.address = None
+        self.block = None
+        self.used = False  # Track if literal has been processed
+
+    def __eq__(self, other):
+        return self.name == other.name if isinstance(other, Literal) else False
+
 VALID_BLOCKS = {
     "DEFAULT": 0,
     "CDATA": 1,
@@ -8,8 +19,7 @@ VALID_BLOCKS = {
 }
 
 def parse_line(line):
-    """Parse a line of assembly code."""
-    line = line.split(".")[0].strip()  # Remove comments using '.'
+    line = line.split(".")[0].strip()
     if not line:
         return None
     
@@ -24,10 +34,17 @@ def parse_line(line):
     
     return [p.strip() for p in parts if p.strip()]
 
+def parse_literal(literal_str):
+    """Parse literal and return its length"""
+    if literal_str.startswith('=X'):
+        return (len(literal_str) - 4) // 2  # Remove =X'' and divide by 2
+    elif literal_str.startswith('=C'):
+        return len(literal_str) - 4  # Remove =C''
+    return 0
+
 def calculate_instruction_size(instruction, operand=None):
-    """Calculate the size of an instruction based on its format."""
     try:
-        if instruction.startswith("+"):  # Format 4
+        if instruction.startswith("+"):
             return 4
         elif instruction == "RESB":
             return int(operand) if operand else 0
@@ -41,38 +58,53 @@ def calculate_instruction_size(instruction, operand=None):
             return 1
         elif instruction == "WORD":
             return 3
-        elif instruction in ["CLEAR", "TIXR", "COMPR"]:  # Format 2
+        elif instruction in ["CLEAR", "TIXR", "COMPR"]:
             return 2
-        elif instruction in ["RSUB"]:  # Format 3 no operand
+        elif instruction in ["RSUB"]:
             return 3
-        # Handle special cases for directives that don't take space
-        elif instruction in ["START", "END", "USE", "EQU"]:
+        elif instruction in ["START", "END", "USE", "EQU", "LTORG"]:
             return 0
-        else:  # Default Format 3
+        else:
             return 3
     except ValueError as e:
         raise ValueError(f"Error calculating size for {instruction}: {e}")
+
+def handle_literal_pool(literals, current_address, current_block, inter_file, lc_file):
+    """Process and write literal pool"""
+    # Get unprocessed literals
+    unprocessed_literals = [lit for lit in literals if not lit.used]
+    if not unprocessed_literals:
+        return current_address
+
+    # Write literal pool marker
+    inter_file.write(f"{current_address:04X} {VALID_BLOCKS[current_block]} * LITERAL POOL\n")
+    lc_file.write(f"{current_address:04X} {VALID_BLOCKS[current_block]} * LITERAL POOL\n")
+
+    for literal in unprocessed_literals:
+        literal.address = current_address
+        literal.block = current_block
+        literal.used = True
+        # Write literal to intermediate file
+        inter_file.write(f"{current_address:04X} {VALID_BLOCKS[current_block]} * {literal.name}\n")
+        lc_file.write(f"{current_address:04X} {VALID_BLOCKS[current_block]} * {literal.name}\n")
+        current_address += literal.length
+
+    return current_address
+
 def pass1(input_file, intermediate_file, symb_table_file, lc_file):
-    """Perform Pass 1 to calculate LCs and generate the symbol table."""
-    
     # Initialize data structures
-    symbol_table = {}  # Format: {name: (value, type)}
+    symbol_table = {}
+    literal_table = []
     block_info = {
         "DEFAULT": {"number": 0, "start": 0x0000, "length": 0},
         "CDATA": {"number": 1, "start": 0, "length": 0},
         "CBLKS": {"number": 2, "start": 0, "length": 0}
     }
     
-    block_counters = {
-        "DEFAULT": 0,
-        "CDATA": 0,
-        "CBLKS": 0
-    }
-    
+    block_counters = {name: 0 for name in VALID_BLOCKS}
     current_block = "DEFAULT"
-    program_name = None
 
-    # First pass to calculate block lengths
+    # First pass to calculate block lengths and collect literals
     with open(input_file, 'r') as infile:
         for line in infile:
             line = line.strip()
@@ -83,20 +115,46 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
             if not parts:
                 continue
 
+            # Handle literals in operands
+            for part in parts:
+                if part.startswith('='):
+                    lit_length = parse_literal(part)
+                    new_literal = Literal(part, part[1:], lit_length)
+                    if new_literal not in literal_table:
+                        literal_table.append(new_literal)
+
             # Handle USE directive
             if parts[0] == "USE":
-                if len(parts) > 1:
-                    current_block = parts[1]
-                else:
-                    current_block = "DEFAULT"
+                current_block = parts[1] if len(parts) > 1 else "DEFAULT"
                 continue
 
-            # Calculate instruction size and update block length
+            # Handle LTORG directive
+            if "LTORG" in parts:
+                block_info[current_block]["length"] = handle_literal_pool(
+                    literal_table,
+                    block_info[current_block]["length"],
+                    current_block,
+                    open(intermediate_file, 'a'),
+                    open(lc_file, 'a')
+                )
+                continue
+
+            # Calculate instruction size
             if len(parts) > 1:
                 instruction = parts[1]
                 operand = parts[-1] if len(parts) > 2 else None
                 size = calculate_instruction_size(instruction, operand)
                 block_info[current_block]["length"] += size
+
+            # Handle END directive - process remaining literals
+            if parts[0] == "END" or (len(parts) > 1 and parts[1] == "END"):
+                block_info[current_block]["length"] = handle_literal_pool(
+                    literal_table,
+                    block_info[current_block]["length"],
+                    current_block,
+                    open(intermediate_file, 'a'),
+                    open(lc_file, 'a')
+                )
 
     # Calculate block start addresses
     block_info["CDATA"]["start"] = block_info["DEFAULT"]["start"] + block_info["DEFAULT"]["length"]
@@ -106,7 +164,7 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
     current_block = "DEFAULT"
     block_counters = {name: 0 for name in VALID_BLOCKS}
 
-    # Second pass to generate output files
+    # Second pass
     with open(input_file, 'r') as infile, \
          open(intermediate_file, 'w') as inter, \
          open(symb_table_file, 'w') as symb, \
@@ -118,77 +176,75 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
             name = "(Default)" if block_name == "DEFAULT" else block_name
             symb.write(f"{name}\t{info['number']}\t{info['start']:04X}\t{info['length']:04X}\n")
         
-        symb.write("\n")
-        symb.write("Symbol\tType\tValue\n")
+        symb.write("\nSymbol\tType\tValue\n")
 
+        # Reset literal usage flags for second pass
+        for literal in literal_table:
+            literal.used = False
+
+        # Process each line
         for line in infile:
-            original_line = line
-            line = line.strip()
-            if not line or line.startswith('.'):
+            original_line = line.strip()
+            if not original_line or original_line.startswith('.'):
                 continue
 
-            has_label = not original_line.startswith(' ')
-            parts = parse_line(line)
+            has_label = not line.startswith(' ')
+            parts = parse_line(original_line)
             if not parts:
                 continue
 
-            # Handle USE directive
+            # Handle directives and instructions
             if parts[0] == "USE":
-                if len(parts) > 1:
-                    current_block = parts[1]
-                else:
-                    current_block = "DEFAULT"
-                
+                current_block = parts[1] if len(parts) > 1 else "DEFAULT"
                 lc = block_counters[current_block]
-                # Use relative address for display
-                display_address = lc
-                
-                lc_out.write(f"{display_address:04X} {block_info[current_block]['number']} {original_line}")
-                inter.write(f"{display_address:04X} {block_info[current_block]['number']} {original_line}")
+                inter.write(f"{lc:04X} {VALID_BLOCKS[current_block]} {original_line}\n")
+                lc_out.write(f"{lc:04X} {VALID_BLOCKS[current_block]} {original_line}\n")
                 continue
 
+            if "LTORG" in parts:
+                lc = block_counters[current_block]
+                lc = handle_literal_pool(literal_table, lc, current_block, inter, lc_out)
+                block_counters[current_block] = lc
+                continue
+
+            # Process normal instructions
             lc = block_counters[current_block]
-            # Use relative address for display
-            display_address = lc
-            # Calculate absolute address for symbol table
             absolute_address = block_info[current_block]["start"] + lc
 
-            # Write to output files
-            lc_out.write(f"{display_address:04X} {block_info[current_block]['number']} {original_line}")
-            inter.write(f"{display_address:04X} {block_info[current_block]['number']} {original_line}")
+            inter.write(f"{lc:04X} {VALID_BLOCKS[current_block]} {original_line}\n")
+            lc_out.write(f"{lc:04X} {VALID_BLOCKS[current_block]} {original_line}\n")
 
-            # Handle START directive
-            if parts[0] == "START":
-                program_name = parts[0] if has_label else None
-                continue
-
-            # Process labels
-            if has_label and parts[0] != program_name:
+            # Handle labels
+            if has_label and parts[0] != "START":
                 label = parts[0]
-                instruction = parts[1] if len(parts) > 1 else None
-                
-                if instruction == "EQU":
-                    if "BUFEND-BUFFER" in line:
+                if len(parts) > 1 and parts[1] == "EQU":
+                    if "BUFEND-BUFFER" in original_line:
                         symbol_table[label] = (0x1000, "A")
-                    elif "*" in line:
+                    elif "*" in original_line:
                         symbol_table[label] = (absolute_address, "R")
                 else:
                     symbol_table[label] = (absolute_address, "R")
 
             # Update location counter
-            if not has_label:
-                instruction = parts[0]
-            else:
-                instruction = parts[1] if len(parts) > 1 else None
-            
+            instruction = parts[1] if has_label else parts[0]
             operand = parts[-1] if len(parts) > 1 else None
             
-            if instruction and instruction != "EQU":
+            if instruction not in ["START", "END", "EQU"]:
                 increment = calculate_instruction_size(instruction, operand)
                 block_counters[current_block] += increment
 
-        # Write symbol table entries
+            # Handle END directive
+            if instruction == "END":
+                # Generate final literal pool
+                lc = handle_literal_pool(literal_table, lc, current_block, inter, lc_out)
+
+        # Write symbol table
         sorted_symbols = sorted(symbol_table.items(), key=lambda x: x[1][0])
         for symbol, (value, sym_type) in sorted_symbols:
             symb.write(f"{symbol}\t{sym_type}\t{value:04X}\n")
-            
+
+        # Write literal table
+        symb.write("\nLiteral\tLength\tAddress\tBlock\n")
+        for literal in literal_table:
+            if literal.address is not None:
+                symb.write(f"{literal.name}\t{literal.length}\t{literal.address:04X}\t{literal.block}\n")
