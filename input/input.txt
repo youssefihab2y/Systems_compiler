@@ -1,0 +1,32 @@
+START 1000
+DEFAULT
+FIRST   RESW    2
+VALUE   WORD    42
+BUFFER  RESB    1024
+TABLE   RESW    100
+DATA    BYTE    C'Hello World'
+HEX     BYTE    X'1A2B3C'
+DEFAULTB
+LOOP    +LDA    BUFFER
+        +STA    TABLE
+        CADD    VALUE,FIRST,10
+        CSUB    TABLE,BUFFER,20
+        CLOAD   DATA,HEX,30
+        CSTORE  FIRST,VALUE,40
+        CJUMP   LOOP,EXIT,50
+EXIT    +LDB    #100
+        +JSUB   PROC
+CDATA
+MSG1    BYTE    C'Error'
+MSG2    BYTE    C'Success'
+=C'Error'
+=C'Success'
+=X'1A2B3C'
+TEMP    RESB    50
+CBLKS
+PROC    STL     RETADR
+RETADR  RESW    1
+        CLEAR   X
+        LDT     LENGTH
+LENGTH  RESW    1
+END     FIRST
