@@ -7,7 +7,7 @@ class Literal:
         self.length = length
         self.address = None
         self.block = None
-        self.used = False  # Track if literal has been processed
+        self.used = False
 
     def __eq__(self, other):
         return self.name == other.name if isinstance(other, Literal) else False
@@ -36,11 +36,10 @@ def parse_line(line):
     return [p.strip() for p in parts if p.strip()]
 
 def parse_literal(literal_str):
-    """Parse literal and return its length"""
     if literal_str.startswith('=X'):
-        return (len(literal_str) - 4) // 2  # Remove =X'' and divide by 2
+        return (len(literal_str) - 4) // 2
     elif literal_str.startswith('=C'):
-        return len(literal_str) - 4  # Remove =C''
+        return len(literal_str) - 4
     return 0
 
 def calculate_instruction_size(instruction, operand=None):
@@ -81,7 +80,6 @@ def calculate_instruction_size(instruction, operand=None):
         raise ValueError(f"Error calculating size for {instruction}: {e}")
 
 def write_formatted_line(file, loc, block, label, opcode, operand):
-    # Format each column with fixed width
     loc_str = f"{loc:04X}" if loc is not None else "    "
     block_str = f"{block}"
     label_str = f"{label:<8}" if label else " " * 8
@@ -92,7 +90,6 @@ def write_formatted_line(file, loc, block, label, opcode, operand):
     file.write(formatted_line.rstrip() + "\n")
 
 def handle_literal_pool(literals, current_address, current_block, inter_file, lc_file):
-    """Process and write literal pool"""
     unprocessed_literals = [lit for lit in literals if not lit.used]
     if not unprocessed_literals:
         return current_address
@@ -111,7 +108,6 @@ def handle_literal_pool(literals, current_address, current_block, inter_file, lc
     return current_address
 
 def pass1(input_file, intermediate_file, symb_table_file, lc_file):
-    # Initialize data structures
     symbol_table = {}
     literal_table = []
     block_info = {
@@ -124,7 +120,7 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
     block_counters = {name: 0 for name in VALID_BLOCKS}
     current_block = "DEFAULT"
 
-    # First pass to calculate block lengths and collect literals
+    # First pass to calculate block lengths
     with open(input_file, 'r') as infile:
         for line in infile:
             line = line.strip()
@@ -134,6 +130,10 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
             parts = parse_line(line)
             if not parts:
                 continue
+
+            # Check for END directive first
+            if parts[0] == "END" or (len(parts) > 1 and parts[1] == "END"):
+                break
 
             # Handle literals in operands
             for part in parts:
@@ -160,21 +160,20 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
                 continue
 
             # Calculate instruction size
-            if len(parts) > 1:
-                instruction = parts[1]
-                operand = parts[-1] if len(parts) > 2 else None
-                size = calculate_instruction_size(instruction, operand)
-                block_counters[current_block] += size
-
-            # Handle END directive - process remaining literals
-            if parts[0] == "END" or (len(parts) > 1 and parts[1] == "END"):
-                block_counters[current_block] = handle_literal_pool(
-                    literal_table,
-                    block_counters[current_block],
-                    current_block,
-                    open(intermediate_file, 'a'),
-                    open(lc_file, 'a')
-                )
+            has_label = not line.startswith(' ')
+            if has_label:
+                if len(parts) > 1:  # Has label and instruction
+                    instruction = parts[1]
+                    operand = parts[-1] if len(parts) > 2 else None
+                    if instruction not in ["START", "EQU"]:
+                        size = calculate_instruction_size(instruction, operand)
+                        block_counters[current_block] += size
+            else:  # No label
+                instruction = parts[0]
+                operand = parts[-1] if len(parts) > 1 else None
+                if instruction not in ["START", "EQU", "USE"]:
+                    size = calculate_instruction_size(instruction, operand)
+                    block_counters[current_block] += size
 
     # Update block lengths and calculate start addresses
     for block in block_info:
@@ -217,10 +216,8 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
             if not parts:
                 continue
 
-            # Split instruction into components
             components = parts
 
-            # Handle directives and instructions
             if components[0] == "USE":
                 current_block = components[1] if len(components) > 1 else "DEFAULT"
                 lc = block_counters[current_block]
@@ -236,11 +233,9 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
                 block_counters[current_block] = lc
                 continue
 
-            # Process normal instructions
             lc = block_counters[current_block]
             absolute_address = block_info[current_block]["start"] + lc
 
-            # Determine label, opcode, and operand
             if has_label:
                 label = components[0]
                 opcode = components[1] if len(components) > 1 else ""
@@ -253,7 +248,6 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
             write_formatted_line(inter, lc, VALID_BLOCKS[current_block], label, opcode, operand)
             write_formatted_line(lc_out, lc, VALID_BLOCKS[current_block], label, opcode, operand)
 
-            # Handle labels
             if has_label and components[0] != "START":
                 label = components[0]
                 if len(components) > 1 and components[1] == "EQU":
@@ -264,7 +258,6 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
                 else:
                     symbol_table[label] = (absolute_address, "R")
 
-            # Update location counter
             instruction = components[1] if has_label else components[0]
             operand = components[-1] if len(components) > 1 else None
             
@@ -272,9 +265,10 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
                 increment = calculate_instruction_size(instruction, operand)
                 block_counters[current_block] += increment
 
-            # Handle END directive
             if instruction == "END":
                 lc = handle_literal_pool(literal_table, lc, current_block, inter, lc_out)
+                write_formatted_line(inter, lc, VALID_BLOCKS[current_block], "", "END", operand)
+                write_formatted_line(lc_out, lc, VALID_BLOCKS[current_block], "", "END", operand)
 
         # Write symbol table
         sorted_symbols = sorted(symbol_table.items(), key=lambda x: x[1][0])

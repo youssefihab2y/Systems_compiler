@@ -1,0 +1,13 @@
+Block name	Block number	Address	Length
+(Default)	0	0000	0011
+DEFAULTB	1	0011	0000
+CDATA	2	0011	0000
+CBLKS	3	0011	0000
+
+Symbol	Type	Value
+FIRST	R	0000
+ALPHA	R	000C
+CHAR	R	000F
+C1	R	0010
+
+Literal	Length	Address	Block

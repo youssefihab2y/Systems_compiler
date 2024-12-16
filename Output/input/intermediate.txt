@@ -1,0 +1,9 @@
+0000 0 FIRST    LDA      #5
+0003 0          STA      ALPHA
+0006 0          LDCH     CHAR
+0009 0          STCH     C1
+000C 0 ALPHA    RESW     1
+000F 0 CHAR     BYTE     C'Z'
+0010 0 C1       RESB     1
+0011 0          END      FIRST
+0011 0          END      FIRST

@@ -10,7 +10,7 @@
 001B 0          LDA      #3
 001E 0          STA      LENGTH
 0021 0          JSUB     WRREC
-0024 0          J        @RETADR
+0024 0          J        RETADR
 0000 2          USE      CDATA
 0000 2 RETADR   RESW     1
 0003 2 LENGTH   RESW     1
@@ -50,4 +50,5 @@
 0007 2          *        LITERAL POOL
 0007 2          *        =C'EOF'
 000A 2          *        =X'05'
+000B 2          END      FIRST
 000B 2          END      FIRST
