@@ -14,8 +14,9 @@ class Literal:
 
 VALID_BLOCKS = {
     "DEFAULT": 0,
-    "CDATA": 1,
-    "CBLKS": 2
+    "DEFAULTB":1,
+    "CDATA": 2,
+    "CBLKS": 3,
 }
 
 def parse_line(line):
@@ -41,6 +42,19 @@ def parse_literal(literal_str):
     elif literal_str.startswith('=C'):
         return len(literal_str) - 4  # Remove =C''
     return 0
+def load_instruction_set(filename):
+    """Load instruction set from file"""
+    Mnemonic = {}
+    try:
+        with open(filename, 'r') as file:
+            exec(file.read(), None, {'Mnemonic': Mnemonic})
+        return Mnemonic
+    except FileNotFoundError:
+        print(f"Error: Instruction set file '{filename}' not found")
+        return {}
+    except Exception as e:
+        print(f"Error loading instruction set: {e}")
+        return {}
 
 def calculate_instruction_size(instruction, operand=None):
     try:
@@ -58,9 +72,22 @@ def calculate_instruction_size(instruction, operand=None):
             return 1
         elif instruction == "WORD":
             return 3
-        elif instruction in ["CLEAR", "TIXR", "COMPR"]:
+        # Format 2 Instructions
+        elif instruction in ["ADDR", "CLEAR", "COMPR", "DIVR", "MULR", "RMO", "SHIFTL", 
+                           "SHIFTR", "SUBR", "SVC", "TIXR"]:
             return 2
-        elif instruction in ["RSUB"]:
+        # Format 1 Instructions
+        elif instruction in ["FIX", "FLOAT", "HIO", "NORM", "SIO", "TIO"]:
+            return 1
+        elif instruction == "RSUB":
+            return 3
+        # Format 3 Instructions
+        elif instruction in ["ADD", "ADDF", "AND", "COMP", "COMPF", "DIV", "DIVF", 
+                           "J", "JEQ", "JGT", "JLT", "JSUB", "LDA", "LDB", "LDCH", 
+                           "LDF", "LDL", "LDS", "LDT", "LDX", "LPS", "MUL", "MULF", 
+                           "OR", "RD", "RSUB", "SSK", "STA", "STB", "STCH", "STF", 
+                           "STI", "STL", "STS", "STSW", "STT", "STX", "SUB", "SUBF", 
+                           "TD", "TIX", "WD"]:
             return 3
         elif instruction in ["START", "END", "USE", "EQU", "LTORG"]:
             return 0
@@ -68,7 +95,6 @@ def calculate_instruction_size(instruction, operand=None):
             return 3
     except ValueError as e:
         raise ValueError(f"Error calculating size for {instruction}: {e}")
-
 def handle_literal_pool(literals, current_address, current_block, inter_file, lc_file):
     """Process and write literal pool"""
     # Get unprocessed literals
@@ -97,8 +123,10 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
     literal_table = []
     block_info = {
         "DEFAULT": {"number": 0, "start": 0x0000, "length": 0},
-        "CDATA": {"number": 1, "start": 0, "length": 0},
-        "CBLKS": {"number": 2, "start": 0, "length": 0}
+        "DEFAULTB": {"number": 1, "start": 0, "length": 0},
+        "CDATA": {"number": 2, "start": 0, "length": 0},
+        "CBLKS": {"number": 3, "start": 0, "length": 0},
+
     }
     
     block_counters = {name: 0 for name in VALID_BLOCKS}
@@ -157,8 +185,10 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
                 )
 
     # Calculate block start addresses
-    block_info["CDATA"]["start"] = block_info["DEFAULT"]["start"] + block_info["DEFAULT"]["length"]
+    block_info["DEFAULTB"]["start"] = block_info["DEFAULT"]["start"] + block_info["DEFAULT"]["length"]
+    block_info["CDATA"]["start"] = block_info["DEFAULTB"]["start"] + block_info["DEFAULTB"]["length"]
     block_info["CBLKS"]["start"] = block_info["CDATA"]["start"] + block_info["CDATA"]["length"]
+
 
     # Reset for second pass
     current_block = "DEFAULT"
