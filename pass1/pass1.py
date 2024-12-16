@@ -130,7 +130,6 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
             parts = parse_line(line)
             if not parts:
                 continue
-
             # Check for END directive first
             if parts[0] == "END" or (len(parts) > 1 and parts[1] == "END"):
                 break
@@ -168,13 +167,13 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
                     if instruction not in ["START", "EQU"]:
                         size = calculate_instruction_size(instruction, operand)
                         block_counters[current_block] += size
+                        print(block_counters)
             else:  # No label
                 instruction = parts[0]
                 operand = parts[-1] if len(parts) > 1 else None
                 if instruction not in ["START", "EQU", "USE"]:
                     size = calculate_instruction_size(instruction, operand)
                     block_counters[current_block] += size
-
     # Update block lengths and calculate start addresses
     for block in block_info:
         block_info[block]["length"] = block_counters[block]
@@ -298,4 +297,6 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
         symb.write("\nLiteral\tLength\tAddress\tBlock\n")
         for literal in literal_table:
             if literal.address is not None:
-                symb.write(f"{literal.name}\t{literal.length}\t{literal.address:04X}\t{literal.block}\n")
+                # Calculate absolute address by adding block start address
+                absolute_address = block_info[literal.block]["start"] + literal.address
+                symb.write(f"{literal.name}\t{literal.length}\t{absolute_address:04X}\t{literal.block}\n")
