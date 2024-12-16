@@ -51,4 +51,3 @@
 0007 2          *        =C'EOF'
 000A 2          *        =X'05'
 000B 2          END      FIRST
-000B 2          END      FIRST

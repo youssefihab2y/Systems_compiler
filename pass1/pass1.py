@@ -187,6 +187,9 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
     current_block = "DEFAULT"
     block_counters = {name: 0 for name in VALID_BLOCKS}
 
+    # Add end_encountered flag
+    end_encountered = False
+    
     # Second pass
     with open(input_file, 'r') as infile, \
          open(intermediate_file, 'w') as inter, \
@@ -207,6 +210,10 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
 
         # Process each line
         for line in infile:
+            # Skip if END was already encountered
+            if end_encountered:
+                continue
+                
             original_line = line.strip()
             if not original_line or original_line.startswith('.'):
                 continue
@@ -217,6 +224,23 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
                 continue
 
             components = parts
+
+            # Check for END directive first
+            if components[0] == "END" or (len(components) > 1 and components[1] == "END"):
+                end_encountered = True
+                operand = components[-1] if len(components) > 1 else ""
+                
+                # Process any remaining literals before END
+                lc = handle_literal_pool(literal_table, block_counters[current_block], 
+                                      current_block, inter, lc_out)
+                block_counters[current_block] = lc
+                
+                # Write END directive once
+                write_formatted_line(inter, lc, VALID_BLOCKS[current_block], 
+                                  "", "END", operand)
+                write_formatted_line(lc_out, lc, VALID_BLOCKS[current_block], 
+                                  "", "END", operand)
+                continue
 
             if components[0] == "USE":
                 current_block = components[1] if len(components) > 1 else "DEFAULT"
@@ -264,11 +288,6 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
             if instruction not in ["START", "END", "EQU"]:
                 increment = calculate_instruction_size(instruction, operand)
                 block_counters[current_block] += increment
-
-            if instruction == "END":
-                lc = handle_literal_pool(literal_table, lc, current_block, inter, lc_out)
-                write_formatted_line(inter, lc, VALID_BLOCKS[current_block], "", "END", operand)
-                write_formatted_line(lc_out, lc, VALID_BLOCKS[current_block], "", "END", operand)
 
         # Write symbol table
         sorted_symbols = sorted(symbol_table.items(), key=lambda x: x[1][0])

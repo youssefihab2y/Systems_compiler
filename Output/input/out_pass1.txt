@@ -6,4 +6,3 @@
 000F 0 CHAR     BYTE     C'Z'
 0010 0 C1       RESB     1
 0011 0          END      FIRST
-0011 0          END      FIRST
