@@ -14,7 +14,7 @@ class Literal:
 
 VALID_BLOCKS = {
     "DEFAULT": 0,
-    "DEFAULTB":1,
+    "DEFAULTB": 1,
     "CDATA": 2,
     "CBLKS": 3,
 }
@@ -42,19 +42,6 @@ def parse_literal(literal_str):
     elif literal_str.startswith('=C'):
         return len(literal_str) - 4  # Remove =C''
     return 0
-def load_instruction_set(filename):
-    """Load instruction set from file"""
-    Mnemonic = {}
-    try:
-        with open(filename, 'r') as file:
-            exec(file.read(), None, {'Mnemonic': Mnemonic})
-        return Mnemonic
-    except FileNotFoundError:
-        print(f"Error: Instruction set file '{filename}' not found")
-        return {}
-    except Exception as e:
-        print(f"Error loading instruction set: {e}")
-        return {}
 
 def calculate_instruction_size(instruction, operand=None):
     try:
@@ -72,16 +59,13 @@ def calculate_instruction_size(instruction, operand=None):
             return 1
         elif instruction == "WORD":
             return 3
-        # Format 2 Instructions
         elif instruction in ["ADDR", "CLEAR", "COMPR", "DIVR", "MULR", "RMO", "SHIFTL", 
                            "SHIFTR", "SUBR", "SVC", "TIXR"]:
             return 2
-        # Format 1 Instructions
         elif instruction in ["FIX", "FLOAT", "HIO", "NORM", "SIO", "TIO"]:
             return 1
         elif instruction == "RSUB":
             return 3
-        # Format 3 Instructions
         elif instruction in ["ADD", "ADDF", "AND", "COMP", "COMPF", "DIV", "DIVF", 
                            "J", "JEQ", "JGT", "JLT", "JSUB", "LDA", "LDB", "LDCH", 
                            "LDF", "LDL", "LDS", "LDT", "LDX", "LPS", "MUL", "MULF", 
@@ -95,24 +79,33 @@ def calculate_instruction_size(instruction, operand=None):
             return 3
     except ValueError as e:
         raise ValueError(f"Error calculating size for {instruction}: {e}")
+
+def write_formatted_line(file, loc, block, label, opcode, operand):
+    # Format each column with fixed width
+    loc_str = f"{loc:04X}" if loc is not None else "    "
+    block_str = f"{block}"
+    label_str = f"{label:<8}" if label else " " * 8
+    opcode_str = f"{opcode:<8}" if opcode else " " * 8
+    operand_str = f"{operand:<12}" if operand else " " * 12
+    
+    formatted_line = f"{loc_str} {block_str} {label_str} {opcode_str} {operand_str}"
+    file.write(formatted_line.rstrip() + "\n")
+
 def handle_literal_pool(literals, current_address, current_block, inter_file, lc_file):
     """Process and write literal pool"""
-    # Get unprocessed literals
     unprocessed_literals = [lit for lit in literals if not lit.used]
     if not unprocessed_literals:
         return current_address
 
-    # Write literal pool marker
-    inter_file.write(f"{current_address:04X} {VALID_BLOCKS[current_block]} * LITERAL POOL\n")
-    lc_file.write(f"{current_address:04X} {VALID_BLOCKS[current_block]} * LITERAL POOL\n")
+    write_formatted_line(inter_file, current_address, VALID_BLOCKS[current_block], "", "*", "LITERAL POOL")
+    write_formatted_line(lc_file, current_address, VALID_BLOCKS[current_block], "", "*", "LITERAL POOL")
 
     for literal in unprocessed_literals:
         literal.address = current_address
         literal.block = current_block
         literal.used = True
-        # Write literal to intermediate file
-        inter_file.write(f"{current_address:04X} {VALID_BLOCKS[current_block]} * {literal.name}\n")
-        lc_file.write(f"{current_address:04X} {VALID_BLOCKS[current_block]} * {literal.name}\n")
+        write_formatted_line(inter_file, current_address, VALID_BLOCKS[current_block], "", "*", literal.name)
+        write_formatted_line(lc_file, current_address, VALID_BLOCKS[current_block], "", "*", literal.name)
         current_address += literal.length
 
     return current_address
@@ -126,7 +119,6 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
         "DEFAULTB": {"number": 1, "start": 0, "length": 0},
         "CDATA": {"number": 2, "start": 0, "length": 0},
         "CBLKS": {"number": 3, "start": 0, "length": 0},
-
     }
     
     block_counters = {name: 0 for name in VALID_BLOCKS}
@@ -158,9 +150,9 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
 
             # Handle LTORG directive
             if "LTORG" in parts:
-                block_info[current_block]["length"] = handle_literal_pool(
+                block_counters[current_block] = handle_literal_pool(
                     literal_table,
-                    block_info[current_block]["length"],
+                    block_counters[current_block],
                     current_block,
                     open(intermediate_file, 'a'),
                     open(lc_file, 'a')
@@ -172,23 +164,25 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
                 instruction = parts[1]
                 operand = parts[-1] if len(parts) > 2 else None
                 size = calculate_instruction_size(instruction, operand)
-                block_info[current_block]["length"] += size
+                block_counters[current_block] += size
 
             # Handle END directive - process remaining literals
             if parts[0] == "END" or (len(parts) > 1 and parts[1] == "END"):
-                block_info[current_block]["length"] = handle_literal_pool(
+                block_counters[current_block] = handle_literal_pool(
                     literal_table,
-                    block_info[current_block]["length"],
+                    block_counters[current_block],
                     current_block,
                     open(intermediate_file, 'a'),
                     open(lc_file, 'a')
                 )
 
-    # Calculate block start addresses
+    # Update block lengths and calculate start addresses
+    for block in block_info:
+        block_info[block]["length"] = block_counters[block]
+
     block_info["DEFAULTB"]["start"] = block_info["DEFAULT"]["start"] + block_info["DEFAULT"]["length"]
     block_info["CDATA"]["start"] = block_info["DEFAULTB"]["start"] + block_info["DEFAULTB"]["length"]
     block_info["CBLKS"]["start"] = block_info["CDATA"]["start"] + block_info["CDATA"]["length"]
-
 
     # Reset for second pass
     current_block = "DEFAULT"
@@ -208,7 +202,7 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
         
         symb.write("\nSymbol\tType\tValue\n")
 
-        # Reset literal usage flags for second pass
+        # Reset literal usage flags
         for literal in literal_table:
             literal.used = False
 
@@ -223,16 +217,21 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
             if not parts:
                 continue
 
+            # Split instruction into components
+            components = parts
+
             # Handle directives and instructions
-            if parts[0] == "USE":
-                current_block = parts[1] if len(parts) > 1 else "DEFAULT"
+            if components[0] == "USE":
+                current_block = components[1] if len(components) > 1 else "DEFAULT"
                 lc = block_counters[current_block]
-                inter.write(f"{lc:04X} {VALID_BLOCKS[current_block]} {original_line}\n")
-                lc_out.write(f"{lc:04X} {VALID_BLOCKS[current_block]} {original_line}\n")
+                write_formatted_line(inter, lc, VALID_BLOCKS[current_block], "", "USE", current_block)
+                write_formatted_line(lc_out, lc, VALID_BLOCKS[current_block], "", "USE", current_block)
                 continue
 
-            if "LTORG" in parts:
+            if "LTORG" in components:
                 lc = block_counters[current_block]
+                write_formatted_line(inter, lc, VALID_BLOCKS[current_block], "", "LTORG", "")
+                write_formatted_line(lc_out, lc, VALID_BLOCKS[current_block], "", "LTORG", "")
                 lc = handle_literal_pool(literal_table, lc, current_block, inter, lc_out)
                 block_counters[current_block] = lc
                 continue
@@ -241,13 +240,23 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
             lc = block_counters[current_block]
             absolute_address = block_info[current_block]["start"] + lc
 
-            inter.write(f"{lc:04X} {VALID_BLOCKS[current_block]} {original_line}\n")
-            lc_out.write(f"{lc:04X} {VALID_BLOCKS[current_block]} {original_line}\n")
+            # Determine label, opcode, and operand
+            if has_label:
+                label = components[0]
+                opcode = components[1] if len(components) > 1 else ""
+                operand = " ".join(components[2:]) if len(components) > 2 else ""
+            else:
+                label = ""
+                opcode = components[0]
+                operand = " ".join(components[1:]) if len(components) > 1 else ""
+
+            write_formatted_line(inter, lc, VALID_BLOCKS[current_block], label, opcode, operand)
+            write_formatted_line(lc_out, lc, VALID_BLOCKS[current_block], label, opcode, operand)
 
             # Handle labels
-            if has_label and parts[0] != "START":
-                label = parts[0]
-                if len(parts) > 1 and parts[1] == "EQU":
+            if has_label and components[0] != "START":
+                label = components[0]
+                if len(components) > 1 and components[1] == "EQU":
                     if "BUFEND-BUFFER" in original_line:
                         symbol_table[label] = (0x1000, "A")
                     elif "*" in original_line:
@@ -256,8 +265,8 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
                     symbol_table[label] = (absolute_address, "R")
 
             # Update location counter
-            instruction = parts[1] if has_label else parts[0]
-            operand = parts[-1] if len(parts) > 1 else None
+            instruction = components[1] if has_label else components[0]
+            operand = components[-1] if len(components) > 1 else None
             
             if instruction not in ["START", "END", "EQU"]:
                 increment = calculate_instruction_size(instruction, operand)
@@ -265,7 +274,6 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
 
             # Handle END directive
             if instruction == "END":
-                # Generate final literal pool
                 lc = handle_literal_pool(literal_table, lc, current_block, inter, lc_out)
 
         # Write symbol table
