@@ -59,10 +59,12 @@ def calculate_instruction_size(instruction, operand=None):
         elif instruction == "WORD":
             return 3
         elif instruction in ["ADDR", "CLEAR", "COMPR", "DIVR", "MULR", "RMO", "SHIFTL", 
-                           "SHIFTR", "SUBR", "SVC", "TIXR"]:
+                           "SHIFTR", "SUBR", "SVC","TIXR"]:
             return 2
         elif instruction in ["FIX", "FLOAT", "HIO", "NORM", "SIO", "TIO"]:
             return 1
+        elif instruction in ["CADD", "CSUB", "CLOAD", "CSTORE", "CJUMP"]:
+            return 4
         elif instruction == "RSUB":
             return 3
         elif instruction in ["ADD", "ADDF", "AND", "COMP", "COMPF", "DIV", "DIVF", 
@@ -72,7 +74,7 @@ def calculate_instruction_size(instruction, operand=None):
                            "STI", "STL", "STS", "STSW", "STT", "STX", "SUB", "SUBF", 
                            "TD", "TIX", "WD"]:
             return 3
-        elif instruction in ["START", "END", "USE", "EQU", "LTORG"]:
+        elif instruction in ["START", "END", "USE", "EQU", "LTORG","BASE"]:
             return 0
         else:
             return 3
@@ -90,20 +92,30 @@ def write_formatted_line(file, loc, block, label, opcode, operand):
     file.write(formatted_line.rstrip() + "\n")
 
 def handle_literal_pool(literals, current_address, current_block, inter_file, lc_file):
-    unprocessed_literals = [lit for lit in literals if not lit.used]
+    # Get only unprocessed literals that appeared before the current address
+    unprocessed_literals = [lit for lit in literals 
+                          if not lit.used and 
+                          (lit.address is None or lit.address <= current_address)]
+    
     if not unprocessed_literals:
         return current_address
 
+    # Write literal pool header only if there are literals to process
     write_formatted_line(inter_file, current_address, VALID_BLOCKS[current_block], "", "*", "LITERAL POOL")
     write_formatted_line(lc_file, current_address, VALID_BLOCKS[current_block], "", "*", "LITERAL POOL")
 
+    # Process each unique literal only once
+    processed_names = set()
     for literal in unprocessed_literals:
-        literal.address = current_address
-        literal.block = current_block
-        literal.used = True
-        write_formatted_line(inter_file, current_address, VALID_BLOCKS[current_block], "", "*", literal.name)
-        write_formatted_line(lc_file, current_address, VALID_BLOCKS[current_block], "", "*", literal.name)
-        current_address += literal.length
+        if literal.name not in processed_names:
+            literal.address = current_address
+            literal.block = current_block
+            literal.used = True
+            processed_names.add(literal.name)
+            
+            write_formatted_line(inter_file, current_address, VALID_BLOCKS[current_block], "", "*", literal.name)
+            write_formatted_line(lc_file, current_address, VALID_BLOCKS[current_block], "", "*", literal.name)
+            current_address += literal.length
 
     return current_address
 
