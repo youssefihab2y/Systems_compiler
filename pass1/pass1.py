@@ -46,6 +46,8 @@ def calculate_instruction_size(instruction, operand=None):
     try:
         if instruction.startswith("+"):
             return 4
+        elif instruction in[ "CADD","CSUB","CLOAD" ,"CSTORE" ,"CJUMPF" ]:
+            return 4
         elif instruction == "RESB":
             return int(operand) if operand else 0
         elif instruction == "RESW":

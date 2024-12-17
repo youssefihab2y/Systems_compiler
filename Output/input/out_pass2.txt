@@ -1,8 +1,40 @@
 Loc   Block    Symbols      Instr       Reference        Object Code
-0003    0                   STA           ALPHA          0F2006
-0006    0                   LDCH          CHAR           532006
-0009    0                   STCH          C1             572004
-000C    0       ALPHA       RESW          1              
-000F    0       CHAR        BYTE          C'Z'           5A
-0010    0       C1          RESB          1              
-0011    0                   END           FIRST          
+0000    1                   USE           DEFAULTB       
+0000    1                   LDA           =C'A'          032FFD
+0003    1                   +LDB          #RESULT        69101041
+0007    1                   BASE          RESULT         
+000A    1                   ADD           WOD            1B2022
+000D    1                   LDT           #256           750100
+0000    0                   USE           DEFAULT        
+0000    0                   TIO                          3E3200000
+0001    0                   MULR          A,X            9801
+0010    1                   USE           DEFAULTB       
+0010    1                   CADD          A,WOD,Z        7000002F
+0014    1                   +LDA          GAMMA          03100032
+0018    1                   J             @RETADR        3E2FE5
+0000    2                   USE           CDATA          
+0000    2                   LTORG                        
+0000    2                   *             LITERAL        
+0000    2                   *             =C'A'          41
+0001    2                   *             =X'07'         07
+001B    1                   USE           DEFAULTB       
+001B    1                   CSUB          A,GAMMA,N      
+0002    2                   USE           CDATA          
+0002    2       WOD         WORD          5              
+0005    2       GAMMA       BYTE          X'02'          02
+001F    1                   USE           DEFAULTB       
+001F    1                   COMP          RESULT         2B4000
+0022    1                   CLOAD         T,DATA,C       
+0026    1                   CSTORE        T,RESULT,Z     
+002A    1                   CJUMP         LENGTH,N       
+002D    1                   STA           =X'07'         0F2FD0
+0006    2                   USE           CDATA          
+0006    2       DATA        WORD          5              
+0000    3                   USE           CBLKS          
+0000    3       BUFFER      RESB          10             
+000A    3       RETADRR     RESB          4096           
+100A    3       RESULT      RESW          1              
+0009    2                   USE           CDATA          
+0009    2       LENGTH      BYTE          X'FF'          FF
+000A    2                   LTORG                        
+000A    2                   END           0000           
