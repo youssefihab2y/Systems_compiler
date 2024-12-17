@@ -1,0 +1,55 @@
+0000 0          USE      DEFAULT
+0000 0 FIRST    STL      RETADR
+0003 0 CLOOP    JSUB     RDREC
+0006 0          LDA      LENGTH
+0009 0          COMP     #0
+000C 0          JEQ      ENDFIL
+000F 0          JSUB     WRREC
+0012 0          J        CLOOP
+0015 0 ENDFIL   LDA      =C'EOF'
+0018 0          STA      BUFFER
+001B 0          LDA      #3
+001E 0          STA      LENGTH
+0021 0          JSUB     WRREC
+0024 0          J        RETADR
+0000 2          USE      CDATA
+0000 2 RETADR   RESW     1
+0003 2 LENGTH   RESW     1
+0000 3          USE      CBLKS
+0000 3 BUFFER   RESB     4096
+1000 3 BUFEND   EQU      *
+1000 3 MAXLEN   EQU      BUFEND-BUFFER
+0000 1          USE      DEFAULTB
+0000 1 RDREC    CLEAR    X
+0002 1          CLEAR    A
+0004 1          CLEAR    S
+0006 1          +LDT     #MAXLEN
+000A 1 RLOOP    TD       INPUT
+000D 1          JEQ      RLOOP
+0010 1          RD       INPUT
+0013 1          COMPR    A,S
+0015 1          JEQ      EXIT
+0018 1          STCH     BUFFER,X
+001B 1          TIXR     T
+001D 1          JLT      RLOOP
+0020 1 EXIT     STX      LENGTH
+0023 1          RSUB
+0006 2          USE      CDATA
+0006 2 INPUT    BYTE     X'F1'
+0026 1          USE      DEFAULTB
+0026 1 WRREC    CLEAR    X
+0028 1          LDT      LENGTH
+002B 1 WLOOP    TD       =X'05'
+002E 1          JEQ      WLOOP
+0031 1          LDCH     BUFFER,X
+0034 1          WD       =X'05'
+0037 1          TIXR     T
+0039 1          JLT      WLOOP
+003C 1          RSUB
+0007 2          USE      CDATA
+0007 2          LTORG
+0007 2          *        LITERAL POOL
+0007 2          *        =C'EOF'
+000A 2          *        =X'05'
+0027 0          USE      DEFAULT
+0027 0          END      FIRST

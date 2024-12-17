@@ -1,0 +1,8 @@
+Loc   Block    Symbols      Instr       Reference        Object Code
+0003    0                   STA           ALPHA          0F2006
+0006    0                   LDCH          CHAR           532006
+0009    0                   STCH          C1             572004
+000C    0       ALPHA       RESW          1              
+000F    0       CHAR        BYTE          C'Z'           5A
+0010    0       C1          RESB          1              
+0011    0                   END           FIRST          

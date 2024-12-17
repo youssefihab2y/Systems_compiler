@@ -1,3 +1,4 @@
+COPY    START   0
 FIRST   STL     RETADR
 CLOOP   JSUB    RDREC
         LDA     LENGTH
@@ -18,7 +19,7 @@ LENGTH  RESW    1
 BUFFER  RESB    4096
 BUFEND  EQU     *
 MAXLEN  EQU     BUFEND-BUFFER
-        USE
+        USE     DEFAULT
 RDREC   CLEAR   X
         CLEAR   A
         CLEAR   S
@@ -35,7 +36,7 @@ EXIT    STX     LENGTH
         RSUB
         USE     CDATA
 INPUT   BYTE    X'F1'
-        USE
+        USE     DEFAULT
 WRREC   CLEAR   X
         LDT     LENGTH
 WLOOP   TD      =X'05'
@@ -47,4 +48,5 @@ WLOOP   TD      =X'05'
         RSUB
         USE     CDATA
         LTORG
+        USE     DEFAULT
         END     FIRST

@@ -1,3 +1,4 @@
+0000 0 COPY     START    0
 0000 0 FIRST    STL      RETADR
 0003 0 CLOOP    JSUB     RDREC
 0006 0          LDA      LENGTH
@@ -50,4 +51,5 @@
 0007 2          *        LITERAL POOL
 0007 2          *        =C'EOF'
 000A 2          *        =X'05'
-000B 2          END      FIRST
+0066 0          USE      DEFAULT
+0066 0          END      FIRST

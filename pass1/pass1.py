@@ -122,6 +122,9 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
 
     # First pass to calculate block lengths
     with open(input_file, 'r') as infile:
+        # Skip first line as we already processed it
+        next(infile)
+        
         for line in infile:
             line = line.strip()
             if not line or line.startswith('.'):
@@ -275,7 +278,10 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
                 label = components[0]
                 if len(components) > 1 and components[1] == "EQU":
                     if "BUFEND-BUFFER" in original_line:
-                        symbol_table[label] = (0x1000, "A")
+                        # Calculate BUFEND-BUFFER using their actual addresses
+                        buffer_address = symbol_table["BUFFER"][0] if "BUFFER" in symbol_table else 0
+                        bufend_address = absolute_address  # Current address is BUFEND's address
+                        symbol_table[label] = (bufend_address - buffer_address, "A")
                     elif "*" in original_line:
                         symbol_table[label] = (absolute_address, "R")
                 else:
