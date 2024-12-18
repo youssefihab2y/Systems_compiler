@@ -62,6 +62,13 @@ Mnemonic = {
     'HIO': [1, hex(0xF4)],
     'NORM': [1, hex(0xC8)],
     'SIO': [1, hex(0xF0)],
-    'TIO': [1, hex(0xF8)]
+    'TIO': [1, hex(0xF8)],
+
+    # Format 4F Instructions
+    'CADD': [4, hex(0xBC)],
+    'CSUB': [4, hex(0x8C)],
+    'CLOAD': [4, hex(0xE4)],
+    'CSTORE': [4, hex(0xFC)],
+    'CJUMP': [4, hex(0xCC)],
 }
 

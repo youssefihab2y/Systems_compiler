@@ -48,5 +48,4 @@ WLOOP   TD      =X'05'
         RSUB
         USE     CDATA
         LTORG
-        USE     DEFAULT
         END     FIRST

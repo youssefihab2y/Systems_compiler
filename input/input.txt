@@ -22,7 +22,7 @@ GAMMA   BYTE    X'02'
         USE     DEFAULTB
         COMP    RESULT
         CLOAD   T,DATA,C
-        CSTORE  T,RESULT,Z
+        CSTORE  T,RESULT,10
         CJUMP   LENGTH,N
         STA     =X'07'
         USE     CDATA
