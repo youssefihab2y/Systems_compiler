@@ -1,9 +1,6 @@
 COPY    START   0000
 FIRST   STL     RETADR
 CLOOP   JSUB    RDREC
-        LDA     LENGTH
-        COMP    #0
-        JEQ     ENDFIL
-        JSUB    WRREC
+RETADR  JSUB    WRREC
         J       CLOOP
 END     FIRST
