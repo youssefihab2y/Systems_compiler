@@ -6,7 +6,7 @@ Loc   Block    Symbols      Instr       Reference        Object Code
 000C    0                   JEQ           ENDFIL         332006
 000F    0                   JSUB          WRREC          4B203B
 0012    0                   J             CLOOP          3F2FEE
-0015    0       ENDFIL      LDA           =C'EOF'        032FE8
+0015    0       ENDFIL      LDA           =C'EOF'        032053
 0018    0                   STA           BUFFER         0F2054
 001B    0                   LDA           #3             010003
 001E    0                   STA           LENGTH         0F2046
@@ -23,7 +23,7 @@ Loc   Block    Symbols      Instr       Reference        Object Code
 0027    0       RDREC       CLEAR         X              B410
 0029    0                   CLEAR         A              B400
 002B    0                   CLEAR         S              B440
-002D    0                   +LDT          #MAXLEN        75101000
+002D    0                   +LDT          #MAXLEN        77101000
 0031    0       RLOOP       TD            INPUT          E32036
 0034    0                   JEQ           RLOOP          332FFA
 0037    0                   RD            INPUT          DB2030
@@ -39,10 +39,10 @@ Loc   Block    Symbols      Instr       Reference        Object Code
 004D    0                   USE           DEFAULT        
 004D    0       WRREC       CLEAR         X              B410
 004F    0                   LDT           LENGTH         772015
-0052    0       WLOOP       TD            =X'05'         E32FAB
+0052    0       WLOOP       TD            =X'05'         E32019
 0055    0                   JEQ           WLOOP          332FFA
 0058    0                   LDCH          BUFFER,X       53A014
-005B    0                   WD            =X'05'         DF2FA2
+005B    0                   WD            =X'05'         DF2010
 005E    0                   TIXR          T              B850
 0060    0                   JLT           WLOOP          3B2FEF
 0063    0                   RSUB                         4F0000
@@ -50,6 +50,6 @@ Loc   Block    Symbols      Instr       Reference        Object Code
 0007    2                   LTORG                        
 0007    2                   *             LITERAL        
 0007    2                   *             =C'EOF'        454F46
+000A    2                   *             LITERAL        
 000A    2                   *             =X'05'         05
-0066    0                   USE           DEFAULT        
-0066    0                   END           FIRST          
+000B    2                   END           FIRST          

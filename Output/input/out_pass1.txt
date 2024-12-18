@@ -1,8 +1,41 @@
-0000 0 FIRST    LDA      #5
-0003 0          STA      ALPHA
-0006 0          LDCH     CHAR
-0009 0          STCH     C1
-000C 0 ALPHA    RESW     1
-000F 0 CHAR     BYTE     C'Z'
-0010 0 C1       RESB     1
-0011 0          END      FIRST
+0000 0 PRROGA   START    0000
+0000 1          USE      DEFAULTB
+0000 1          LDA      =C'A'
+0003 1          +LDB     #RESULT
+0007 1          BASE     RESULT
+0007 1          ADD      WOD
+000A 1          LDT      #256
+0000 0          USE      DEFAULT
+0000 0          TIO
+0001 0          MULR     A,X
+000D 1          USE      DEFAULTB
+000D 1          CADD     A,WOD,Z
+0011 1          +LDA     GAMMA
+0015 1          J        @RETADR
+0000 2          USE      CDATA
+0000 2          LTORG
+0000 2          *        LITERAL POOL
+0000 2          *        =C'A'
+0018 1          USE      DEFAULTB
+0018 1          CSUB     A,GAMMA,N
+0001 2          USE      CDATA
+0001 2 WOD      WORD     5
+0004 2 GAMMA    BYTE     X'02'
+001C 1          USE      DEFAULTB
+001C 1          COMP     RESULT
+001F 1          CLOAD    T,DATA,C
+0023 1          CSTORE   T,RESULT,10
+0027 1          CJUMP    LENGTH,N
+002B 1          STA      =X'07'
+0005 2          USE      CDATA
+0005 2 DATA     WORD     5
+0000 3          USE      CBLKS
+0000 3 BUFFER   RESB     10
+000A 3 RETADRR  RESB     4096
+100A 3 RESULT   RESW     1
+0008 2          USE      CDATA
+0008 2 LENGTH   BYTE     X'FF'
+0009 2          LTORG
+0009 2          *        LITERAL POOL
+0009 2          *        =X'07'
+000A 2          END      0000

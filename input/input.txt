@@ -1,9 +1,37 @@
-
-FIRST   LDA     #5
-        STA     ALPHA
-        LDCH    CHAR
-        STCH    C1
-ALPHA   RESW    1
-CHAR    BYTE    C'Z'
-C1      RESB    1
-        END     FIRST
+PRROGA  START   0000
+        USE     DEFAULTB
+        LDA     =C'A'
+        +LDB    #RESULT
+        BASE    RESULT
+        ADD     WOD
+        LDT     #256
+        USE     DEFAULT
+        TIO
+        MULR    A,X
+        USE     DEFAULTB
+        CADD    A,WOD,Z
+        +LDA    GAMMA
+        J       @RETADR
+        USE     CDATA
+        LTORG
+        USE     DEFAULTB
+        CSUB    A,GAMMA,N
+        USE     CDATA
+WOD     WORD    5
+GAMMA   BYTE    X'02'
+        USE     DEFAULTB
+        COMP    RESULT
+        CLOAD   T,DATA,C
+        CSTORE  T,RESULT,10
+        CJUMP   LENGTH,N
+        STA     =X'07'
+        USE     CDATA
+DATA    WORD    5
+        USE     CBLKS
+BUFFER  RESB    10
+RETADRR RESB    4096
+RESULT  RESW    1
+        USE     CDATA
+LENGTH  BYTE    X'FF'
+        LTORG
+        END     0000

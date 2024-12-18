@@ -50,6 +50,6 @@
 0007 2          LTORG
 0007 2          *        LITERAL POOL
 0007 2          *        =C'EOF'
+000A 2          *        LITERAL POOL
 000A 2          *        =X'05'
-0066 0          USE      DEFAULT
-0066 0          END      FIRST
+000B 2          END      FIRST
