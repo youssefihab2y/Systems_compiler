@@ -1,9 +1,1 @@
 Loc   Block    Symbols      Instr       Reference        Object Code
-0000    0       FIRST       STL           RETADR         172FFD
-0003    0       CLOOP       JSUB          RDREC          4B2FFA
-0006    0                   LDA           LENGTH         032FF7
-0009    0                   COMP          #0             290000
-000C    0                   JEQ           ENDFIL         332FF1
-000F    0                   JSUB          WRREC          4B2FEE
-0012    0                   J             CLOOP          3F2FEB
-0015    0                   END           FIRST          

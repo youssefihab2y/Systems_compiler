@@ -1,0 +1,41 @@
+Loc   Block    Symbols      Instr       Reference        Object Code
+0000    1                   USE           DEFAULTB       
+0000    1                   LDA           =C'A'          03203E
+0003    1                   +LDB          #RESULT        69101045
+0007    1                   BASE          RESULT         
+0007    1                   ADD           WOD            1B2028
+000A    1                   LDT           #256           750100
+000D    0                   USE           DEFAULT        
+0000    0                   TIO                          3E3200000
+0001    0                   MULR          A,X            9801
+0003    1                   USE           DEFAULTB       
+000D    1                   CADD          A,WOD,Z        70000032
+0011    1                   +LDA          GAMMA          03100035
+0015    1                   J             @RETADR        3E2FE8
+0018    2                   USE           CDATA          
+0000    2                   LTORG                        
+0000    2                   *             LITERAL        
+0000    2                   *             =C'A'          41
+0001    1                   USE           DEFAULTB       
+0018    1                   CSUB          A,GAMMA,N      8F100000
+001C    2                   USE           CDATA          
+0001    2       WOD         WORD          5              
+0004    2       GAMMA       BYTE          X'02'          02
+0005    1                   USE           DEFAULTB       
+001C    1                   COMP          RESULT         2B4000
+001F    1                   CLOAD         T,DATA,C       E7100000
+0023    1                   CSTORE        T,RESULT,10    FF100000
+0027    1                   CJUMP         LENGTH,N       CF100000
+002B    1                   STA           =X'07'         0F2FD9
+002E    2                   USE           CDATA          
+0005    2       DATA        WORD          5              
+0008    3                   USE           CBLKS          
+0000    3       BUFFER      RESB          10             
+000A    3       RETADRR     RESB          4096           
+100A    3       RESULT      RESW          1              
+100D    2                   USE           CDATA          
+0008    2       LENGTH      BYTE          X'FF'          FF
+0009    2                   LTORG                        
+0009    2                   *             LITERAL        
+0009    2                   *             =X'07'         07
+000A    2                   END           0000           

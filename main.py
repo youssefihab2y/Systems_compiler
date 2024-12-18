@@ -32,9 +32,7 @@ def run_pass2(intermediate_file, symb_table_file, output_dir):
 
 def main():
     input_files = [
-        "input/input.txt",
-        "input/input2.txt",
-        "input/input3.txt"
+        "input/input.txt"
     ]
     output_dir = "Output"
 

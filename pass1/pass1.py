@@ -406,13 +406,13 @@ def pass1(input_file, intermediate_file, symb_table_file, lc_file):
         for block_name, info in block_info.items():
             symb.write(f"{block_name}\t{info['number']}\t{info['start']:04X}\t{info['length']:04X}\n")
 
-        # Write symbol table (without Type column)
+    
         symb.write("\nSymbol\tValue\n")
         sorted_symbols = sorted(symbol_table.items(), key=lambda x: x[1][0])
         for symbol, (value, _) in sorted_symbols:
             symb.write(f"{symbol}\t{value:04X}\n")
 
-        # Write literal table with value instead of block
+   
         symb.write("\nLiteral\tLength\tAddress\tValue\n")
         for literal in literal_table:
             if literal.used:

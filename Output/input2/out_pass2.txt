@@ -23,7 +23,7 @@ Loc   Block    Symbols      Instr       Reference        Object Code
 0027    0       RDREC       CLEAR         X              B410
 0029    0                   CLEAR         A              B400
 002B    0                   CLEAR         S              B440
-002D    0                   +LDT          #MAXLEN        75100000
+002D    0                   +LDT          #MAXLEN        77100000
 0031    0       RLOOP       TD            INPUT          E32FCC
 0034    0                   JEQ           RLOOP          332FC9
 0037    0                   RD            INPUT          DB2FC6

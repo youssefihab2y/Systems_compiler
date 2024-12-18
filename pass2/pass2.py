@@ -94,14 +94,14 @@ def load_symbol_table(symb_table_file):
         lines = f.readlines()
         symbol_section = False
         for line in lines:
-            if line.startswith('Symbol\tType\tValue'):
+            if line.startswith('Symbol\tValue'):
                 symbol_section = True
                 continue
             if symbol_section and line.strip():
                 parts = line.strip().split('\t')
-                if len(parts) >= 3:
+                if len(parts) >= 2:
                     symbol = parts[0]
-                    value = parts[2]
+                    value = parts[1]
                     symbol_table[symbol] = value
     return symbol_table
 
@@ -111,7 +111,7 @@ def load_literal_table(symb_table_file):
         lines = f.readlines()
         literal_section = False
         for line in lines:
-            if line.startswith('Literal Name\tValue'):
+            if line.startswith('Literal\tLength\tAddress\tValue'):
                 literal_section = True
                 continue
             if literal_section and line.strip():
