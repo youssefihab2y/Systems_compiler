@@ -5,35 +5,35 @@
 0007 1          BASE     RESULT
 0007 1          ADD      WOD
 000A 1          LDT      #256
-0000 0          USE      DEFAULT
+000D 0          USE      DEFAULT
 0000 0          TIO
 0001 0          MULR     A,X
-000D 1          USE      DEFAULTB
+0003 1          USE      DEFAULTB
 000D 1          CADD     A,WOD,Z
 0011 1          +LDA     GAMMA
 0015 1          J        @RETADR
-0000 2          USE      CDATA
+0018 2          USE      CDATA
 0000 2          LTORG
 0000 2          *        LITERAL POOL
 0000 2          *        =C'A'
-0018 1          USE      DEFAULTB
+0001 1          USE      DEFAULTB
 0018 1          CSUB     A,GAMMA,N
-0001 2          USE      CDATA
+001C 2          USE      CDATA
 0001 2 WOD      WORD     5
 0004 2 GAMMA    BYTE     X'02'
-001C 1          USE      DEFAULTB
+0005 1          USE      DEFAULTB
 001C 1          COMP     RESULT
 001F 1          CLOAD    T,DATA,C
 0023 1          CSTORE   T,RESULT,10
 0027 1          CJUMP    LENGTH,N
 002B 1          STA      =X'07'
-0005 2          USE      CDATA
+002E 2          USE      CDATA
 0005 2 DATA     WORD     5
-0000 3          USE      CBLKS
+0008 3          USE      CBLKS
 0000 3 BUFFER   RESB     10
 000A 3 RETADRR  RESB     4096
 100A 3 RESULT   RESW     1
-0008 2          USE      CDATA
+100D 2          USE      CDATA
 0008 2 LENGTH   BYTE     X'FF'
 0009 2          LTORG
 0009 2          *        LITERAL POOL

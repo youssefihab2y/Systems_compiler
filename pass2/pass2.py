@@ -6,6 +6,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 # Import instruction set - correct way
 from pass1.instructionSet import Mnemonic as OPCODE_TABLE
 
+
 # Register mapping
 REGISTERS = {
     'A': '0',
@@ -17,54 +18,79 @@ REGISTERS = {
     'F': '6'
 }
 
-def generate_4f_object_code(opcode, register, condition, address):
-    print(f"\nProcessing Format 4F instruction...")
-    
-    # 1. Convert opcode to 6 bits binary and discard last 2 bits
-    opcode_bin = format(int(opcode, 16), '08b')[:-2]  # Take first 6 bits
-    print(f"Opcode {opcode} to 6-bit binary: {opcode_bin}")
-    
-    # 2. Convert register to 4-bit binary
-    reg_hex = REGISTERS.get(register, '0')
-    reg_bin = format(int(reg_hex, 16), '04b')
-    # First byte: 6 bits opcode + first 2 bits of register
-    first_byte = format(int(opcode_bin + reg_bin[:2], 2), '02X')
-    # Second byte: last 2 bits of register + condition flags (4 bits = 1 hex digit)
-    second_byte = format(int(reg_bin[2:] + condition, 2), '01X')  # Changed to '01X'
-    # Address: pad to 5 bytes with leading 0
-    addr_hex = format(int(address, 16), '04X').zfill(5)
-    result = f"{first_byte}{second_byte}{addr_hex}"
-    return result
+# Format 4F opcodes
+FORMAT_4F_OPCODES = {
+    'CADD': '1C',
+    # Add other Format 4F opcodes here
+}
 
+def generate_4f_object_code(opcode, register, condition, address):
+    # Convert register name to hex code
+    register_codes = {
+        'A': '0',
+        'X': '1',
+        'L': '2',
+        'B': '3',
+        'S': '4',
+        'T': '5',
+        'F': '6'
+    }
+    
+    # Convert condition flag to 2-bit code
+    condition_codes = {
+        'Z': '00',  # Zero flag
+        'N': '01',  # Negative flag
+        'C': '10',  # Carry flag
+        'V': '11'   # Overflow flag
+    }
+    
+    # Convert components to binary
+    opcode_bin = format(int(opcode, 16), '06b')
+    register_bin = format(int(register_codes.get(register, '0'), 16), '04b')
+    condition_bin = condition_codes.get(condition, '00')
+    address_bin = format(int(address, 16), '020b')
+    
+    # Concatenate all parts
+    instruction_bin = opcode_bin + register_bin + condition_bin + address_bin
+    
+    # Convert to hexadecimal
+    instruction_hex = format(int(instruction_bin, 2), '08X')
+    
+    return instruction_hex
 
 def parse_4f_instruction(instruction, operand):
+    """
+    Parse a Format 4F instruction into its components
+    Example input: 
+    instruction = "CADD"
+    operand = "A, BUFFER, Z"
+    Returns: (opcode, register, address, condition)
+    """
+    opcode = instruction
     parts = operand.replace(',', ' ').split()
     
     # Default values
     register = parts[0] if len(parts) > 0 else 'A'
     address = parts[1] if len(parts) > 1 else '0'
-    condition = parts[2] if len(parts) > 2 else '11'
+    condition = parts[2] if len(parts) > 2 else 'Z'
     
-    return instruction, register, address, condition
+    return opcode, register, address, condition
 
 def handle_4f_instruction(instruction, operand, symbol_table):
-    """
-    Handle Format 4F instruction and generate object code
-    """
     opcode, register, address, condition = parse_4f_instruction(instruction, operand)
     
     # Look up address in symbol table if it's a symbol
     if address in symbol_table:
         address = symbol_table[address]
     
-    # Get opcode value from OPCODE_TABLE (Mnemonic)
-    opcode_value = OPCODE_TABLE[instruction][1][2:]  # Get hex value without '0x' prefix
+    # Get opcode value from FORMAT_4F_OPCODES
+    opcode_value = FORMAT_4F_OPCODES.get(opcode, '000000')
     
     return generate_4f_object_code(opcode_value, register, condition, address)
 
-def load_symbol_table():
+def load_symbol_table(symb_table_file):
     symbol_table = {}
-    with open(os.path.join(current_dir, 'symbolTable.txt'), 'r') as f:
+    with open(symb_table_file, 'r') as f:
         lines = f.readlines()
         symbol_section = False
         for line in lines:
@@ -79,9 +105,9 @@ def load_symbol_table():
                     symbol_table[symbol] = value
     return symbol_table
 
-def load_literal_table():
+def load_literal_table(symb_table_file):
     literal_table = {}
-    with open(os.path.join(current_dir, 'symbolTable.txt'), 'r') as f:
+    with open(symb_table_file, 'r') as f:
         lines = f.readlines()
         literal_section = False
         for line in lines:
@@ -113,7 +139,7 @@ def get_opcode_value(opcode):
 def get_instruction_format(instruction, opcode):
     if isinstance(opcode, list):
         return opcode[0]
-    if instruction in OPCODE_TABLE and isinstance(OPCODE_TABLE[instruction], list) and OPCODE_TABLE[instruction][0] == '4F':
+    if instruction.split()[0] in FORMAT_4F_OPCODES:
         return '4F'
     return 3
 
@@ -122,14 +148,7 @@ def parse_operand(operand):
         return None, None
     
     if operand.startswith('#'):
-        # Check if it's a number or a symbol
-        value = operand[1:]
-        if value.isdigit() or (value.startswith('-') and value[1:].isdigit()):
-            # For immediate numbers, return the number directly
-            return 'immediate', value
-        else:
-            # For immediate symbols, look up in symbol table
-            return 'immediate_symbol', value
+        return 'immediate', operand[1:]
     elif operand.startswith('@'):
         return 'indirect', operand[1:]
     elif ',X' in operand:
@@ -139,9 +158,9 @@ def parse_operand(operand):
 
 def calculate_flags(mode):
     if mode == 'immediate':
-        return 0, 1  # n=0, i=1 for immediate addressing
+        return 0, 1
     elif mode == 'indirect':
-        return 1, 0  # n=1, i=0 for indirect addressing
+        return 1, 0
     else:  # simple or indexed
         return 1, 1
 
@@ -172,16 +191,15 @@ def generate_object_code(location, instruction, operand, symbol_table, literal_t
     is_format_4 = instruction.startswith('+')
     if is_format_4:
         instruction = instruction[1:]
-        print(f"  Stripped instruction: {instruction}")
 
     if instruction == 'RSUB':
         return '4F0000'
 
-    if instruction not in OPCODE_TABLE:
+    if instruction not in OPCODE_TABLE and instruction not in FORMAT_4F_OPCODES:
         return None
 
-    # Check if it's Format 4F
-    if isinstance(OPCODE_TABLE[instruction], list) and OPCODE_TABLE[instruction][0] == '4F':
+    # Handle Format 4F instructions
+    if instruction in FORMAT_4F_OPCODES:
         return handle_4f_instruction(instruction, operand, symbol_table)
 
     opcode = OPCODE_TABLE[instruction]
@@ -203,36 +221,23 @@ def generate_object_code(location, instruction, operand, symbol_table, literal_t
             return format(opcode_val, '02X') + str(r1_val) + '0'
 
     mode, operand_value = parse_operand(operand)
-    print(f"Parsed operand:")
-    print(f"  Mode: {mode}")
-    print(f"  Value: {operand_value}")
-
     n, i = calculate_flags(mode)
     x = 1 if mode == 'indexed' else 0
 
     opcode_val = get_opcode_value(opcode)
     opcode_ni = (opcode_val << 2) | (n << 1) | i
-    print(f"Opcode calculation:")
-    print(f"  Base opcode value: {opcode_val:02X}")
-    print(f"  With n,i bits: {opcode_ni:02X}")
 
     target_address = 0
     if operand_value:
         if mode == 'immediate':
             if operand_value.isdigit() or (operand_value.startswith('-') and operand_value[1:].isdigit()):
-                target_address = int(operand_value)
-                if format_type == 3:
-                    return format(opcode_ni, '02X') + '0' + format(target_address, '03X').zfill(3)
-                else:  # Format 4
-                    # Fix: For Format 4 immediate, we need flags to be 1 (e-bit set)
-                    flags = 1  # Set e-bit only for Format 4
-                    return format(opcode_ni, '02X') + format(flags, '01X') + format(target_address, '05X').zfill(5)
+                return format(opcode_ni, '02X') + '0' + format(int(operand_value) & 0xFFF, '03X')
             elif operand_value in symbol_table:
                 target_address = int(symbol_table[operand_value], 16)
         else:
             if operand_value.startswith('='):
                 if operand_value in literal_table:
-                    literal_address, literal_value = literal_table[operand_value]
+                    literal_address, _ = literal_table[operand_value]
                     target_address = int(literal_address, 16)
             elif operand_value in symbol_table:
                 target_address = int(symbol_table[operand_value], 16)
@@ -298,7 +303,7 @@ def process_intermediate_file(intermediate_file, symbol_table, literal_table, ou
                 base_register = symbol_table[operand]
         elif instruction == 'BYTE':
             object_code = handle_byte_directive(operand)
-        elif instruction in OPCODE_TABLE or (instruction.startswith('+') and instruction[1:] in OPCODE_TABLE):
+        elif instruction in OPCODE_TABLE or instruction in FORMAT_4F_OPCODES or (instruction.startswith('+') and instruction[1:] in OPCODE_TABLE):
             object_code = generate_object_code(location, instruction, operand, symbol_table, literal_table, base_register)
 
         output_line = f"{location:<8}"
@@ -324,54 +329,19 @@ def process_intermediate_file(intermediate_file, symbol_table, literal_table, ou
 
 def pass2(intermediate_file, symb_table_file, output_file):
     """
-    Main pass2 function that processes the intermediate file and generates object code
+    Process intermediate file and symbol table to generate object code
     """
     try:
-        # Load symbol table and literal table from the provided symb_table_file
-        symbol_table = {}
-        literal_table = {}
+        # Load symbol table and process intermediate file
+        symbol_table = load_symbol_table(symb_table_file)  # Pass the file path
+        literal_table = load_literal_table(symb_table_file)  # Pass the file path
         
-        with open(symb_table_file, 'r') as f:
-            lines = f.readlines()
-            symbol_section = False
-            literal_section = False
+        with open(output_file, 'w') as out:
+            # Process intermediate file and generate object code
+            process_intermediate_file(intermediate_file, symbol_table, literal_table, output_file)
             
-            for line in lines:
-                if line.startswith('Symbol\tType\tValue'):
-                    symbol_section = True
-                    continue
-                elif line.startswith('Literal\tLength\tAddress\tBlock'):
-                    symbol_section = False
-                    literal_section = True
-                    continue
-                
-                if symbol_section and line.strip():
-                    parts = line.strip().split('\t')
-                    if len(parts) >= 3:
-                        symbol = parts[0]
-                        value = parts[2]
-                        symbol_table[symbol] = value
-                        
-                elif literal_section and line.strip():
-                    parts = line.strip().split('\t')
-                    if len(parts) >= 4:
-                        literal = parts[0]
-                        length = parts[1]
-                        address = parts[2]
-                        block = parts[3]
-                        literal_table[literal] = (address, length)
-        
-        # Process the intermediate file with the loaded tables
-        process_intermediate_file(intermediate_file, symbol_table, literal_table, output_file)
-        
     except Exception as e:
         raise Exception(f"Pass 2 error: {e}")
 
 if __name__ == "__main__":
-    # For testing purposes
-    current_dir = os.path.dirname(os.path.abspath(__file__))
-    intermediate_file = os.path.join(current_dir, "intermediate.txt")
-    symb_table_file = os.path.join(current_dir, "symbolTable.txt")
-    output_file = os.path.join(current_dir, "out_pass2.txt")
-    
-    pass2(intermediate_file, symb_table_file, output_file)
+    process_intermediate_file()

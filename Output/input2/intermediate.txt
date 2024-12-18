@@ -12,14 +12,14 @@
 001E 0          STA      LENGTH
 0021 0          JSUB     WRREC
 0024 0          J        RETADR
-0000 2          USE      CDATA
+0027 2          USE      CDATA
 0000 2 RETADR   RESW     1
 0003 2 LENGTH   RESW     1
-0000 3          USE      CBLKS
+0006 3          USE      CBLKS
 0000 3 BUFFER   RESB     4096
 1000 3 BUFEND   EQU      *
 1000 3 MAXLEN   EQU      BUFEND-BUFFER
-0027 0          USE      DEFAULT
+1000 0          USE      DEFAULT
 0027 0 RDREC    CLEAR    X
 0029 0          CLEAR    A
 002B 0          CLEAR    S
@@ -34,9 +34,9 @@
 0044 0          JLT      RLOOP
 0047 0 EXIT     STX      LENGTH
 004A 0          RSUB
-0006 2          USE      CDATA
+004D 2          USE      CDATA
 0006 2 INPUT    BYTE     X'F1'
-004D 0          USE      DEFAULT
+0007 0          USE      DEFAULT
 004D 0 WRREC    CLEAR    X
 004F 0          LDT      LENGTH
 0052 0 WLOOP    TD       =X'05'
@@ -46,10 +46,9 @@
 005E 0          TIXR     T
 0060 0          JLT      WLOOP
 0063 0          RSUB
-0007 2          USE      CDATA
+0066 2          USE      CDATA
 0007 2          LTORG
 0007 2          *        LITERAL POOL
 0007 2          *        =C'EOF'
-000A 2          *        LITERAL POOL
 000A 2          *        =X'05'
 000B 2          END      FIRST

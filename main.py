@@ -1,6 +1,7 @@
 import os
 from pass1.pass1 import pass1
 from pass2.pass2 import pass2
+from pass2.Htme import generate_htme_records, extract_block_info
 
 def run_pass1(input_file, output_dir):
     os.makedirs(output_dir, exist_ok=True)
@@ -29,7 +30,6 @@ def run_pass2(intermediate_file, symb_table_file, output_dir):
         print(f"Error during Pass 2: {e}")
         return None
 
-
 def main():
     input_files = [
         "input/input.txt",
@@ -49,7 +49,17 @@ def main():
             # Run Pass 2 if Pass 1 was successful
             if intermediate_file and symb_table_file:
                 pass2_output = run_pass2(intermediate_file, symb_table_file, specific_output_dir)
-    
+                
+                # Generate HTME records
+                if pass2_output:
+                    with open(pass2_output, 'r') as f:
+                        pass2_content = f.readlines()
+                    
+                    block_info = extract_block_info(symb_table_file)
+                    htme_output = os.path.join(specific_output_dir, "HTME.txt")
+                    generate_htme_records(pass2_content, htme_output, block_info)
+                    print(f"Generated HTME records: {htme_output}")
+        
         else:
             print(f"Input file not found: {input_file}")
 

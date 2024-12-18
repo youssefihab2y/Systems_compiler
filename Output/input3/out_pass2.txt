@@ -5,5 +5,5 @@ Loc   Block    Symbols      Instr       Reference        Object Code
 0009    0                   COMP          #0             290000
 000C    0                   JEQ           ENDFIL         332FF1
 000F    0                   JSUB          WRREC          4B2FEE
-0012    0                   J             CLOOP          3F2FEE
+0012    0                   J             CLOOP          3F2FEB
 0015    0                   END           FIRST          

@@ -1,4 +1,4 @@
-        USE     DEFAULT
+COPY    START   0000
 FIRST   STL     RETADR
 CLOOP   JSUB    RDREC
         LDA     LENGTH
